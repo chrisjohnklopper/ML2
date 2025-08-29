@@ -44,23 +44,22 @@ component, formatting, style, styling, insert
 \section{Introduction}
 
 
-In this report we wish to compare the performance of k-nearest neighbours (KNN) and Decision Tree Classifiers on the Forest Cover Dataset. The Forest Cover Dataset contains cartographic features from a 30x30 metre section of forest. It includes information on the type of tree, shadow coverage, distance to nearby landmarks among other features. The data set contains issues which need to be handled during preprocessing before model training can commence. This includes missing values, outliers, correlated features, numerical ranges of different magnitude and skewed class distributions  The goals of this paper are as follows:
+In this report we wish to compare the performance of k-nearest neighbours (KNN) and Classification Trees on the Forest Cover Dataset. The goals of this paper are as follows:
 \begin{itemize}
 	\item Explain how each algorithm works.
 	\item Preprocess the data and produce models which can effectively classify each observation into one of 7 cover types.
 	\item Test if the two models' performances are different by using Paired 5x2 Cross-Validation $t$-test (TODO SOURCES), Wilcoxon Signed-Rank Test and Hotelling's $T^2$ Test.
 \end{itemize}
 
-
-
 \section{Background}
+
+\subsection{Information on Forest Cover Dataset}
+
+The Forest Cover Dataset contains cartographic features from a 30x30 metre section of forest. It includes information on the type of tree, shadow coverage, distance to nearby landmarks among other features. The data set contains issues which need to be handled during preprocessing before model training can commence. This includes missing values, outliers, correlated features, numerical ranges of different magnitude and skewed class distributions.
 
 \subsection{Discussion of KNN}
 
-KNN is a supervised, distance-based, non-parametric model which regresses/classifies based off neighbouring observations in feature space. The training phase consists of storing all instances in memory\cite[p.~187]{fundamentals}, meaning there essentially is no training phase unless there is preprocessing involved. The prediction phase works as follows: 
-
-
-\cite[pp.~187--192]{kelleher2020fundamentals}
+KNN is a supervised, distance-based, non-parametric machine learning algorithm which regresses/classifies based off neighbouring observations in feature space. The training phase consists of storing all instances in memory\cite[p.~187]{fundamentals}, meaning there essentially is no training phase unless there is preprocessing involved. This results in fast training and slow inference. The prediction phase works as follows: 
 
 \begin{enumerate}
 	\item The distance in feature space between the query observation and the other observations are calculated based off some chosen distance metric.
@@ -68,24 +67,74 @@ KNN is a supervised, distance-based, non-parametric model which regresses/classi
 	\item Perform some aggregation (mean, median for example) of neighbours for regression or a voting rule (majority vote \cite[p.~192]{fundamentals} for example) if the problem is classification.
 \end{enumerate}
 
-The idea of KNN relies on the principle of locality, the assumption that observations near to each other will share similar target feature values. With an increasing number of features this assumption may not hold due to the curse of dimensionality. 
-In general, if the $k$ value is too high the KNN model will under-fit and if the k value is too low the KNN model will over-fit \cite[p.~193]{fundamentals}. Imbalanced datasets are even more sensitive to high $k$ values \cite[p.~193]{fundamentals}. The model trained later in this paper reflects this fact, as models with higher k values perform very poorly due to the presence imbalanced features.
+Distance measures include but are not limited to: Euclidean distance, Manhattan distance, Minkowski distance \cite[p.~11]{similarity}.
 
-\subsection{Discussion of Decision Trees}
+Ties are either dealt with by using and odd number for k or simply selecting a random feature out of the tied features\cite[p.~7]{similarity}.
 
-Decision trees are supervised, non-parametric models which regress/classifies by performing a series of tests on the query observation using features from the dataset (think like a game of Guess Who, but only using features from the data set  \cite[p.~121]{fundamentals}). The structure of Decision Tree can be visualised as a tree graph where there is a root node, internal nodes and terminal nodes. Each non-leaf node is a decision rule/test. Edges represent outcomes of the decision rule/test.
+The idea of KNN relies on the principle of locality, the assumption that observations near to each other will share similar target feature values. With an increasing number of features this assumption may not hold due to the curse of dimensionality.
+ 
+In general, if the $k$ value is too high the KNN model will under-fit and if the $k$ value is too low the KNN model will over-fit \cite[p.~193]{fundamentals}.
 
+\subsection{Discussion of Classification Tree}
+
+A Classification Tree is a supervised, non-parametric machine learning algorithm which classifies by performing a series of tests on the query observation using features from the dataset (think like a game of Guess Who, but only asking questions using features from the data set \cite[p.~121]{fundamentals}.
+
+The structure of Classification Tree can be visualised as a tree graph with a root node, internal nodes and terminal nodes. Each non-leaf node is a decision rule/test. Edges represent outcomes of the decision rule/test. This makes Classification Trees very useful in applications where it is important to explain why a certain decision was made (this could be a legal requirement) since the tree structure/direct decision rules make the model very interpretable.
+
+Classification Tree can split based off missing values which make them useful in discovering if missing data is correlated to other features. This is not applicable for our dataset since missing data is negligible and is imputed.
+
+The training phase of a Classification Tree uses a divide-and-conquer strategy and works as follows:
+
+\begin{enumerate}
+	\item For each available feature, evaluate all possible splitting criteria.
+	\item Select feature and threshold/outcomes which maximises a chosen splitting criterion.
+	\item Split the dataset into subsets based off the chosen feature split.
+	\item For each subset repeat Step 2 and 3 recursively.
+	\item Repeat recursive splitting until a specified stopping condition is specified.
+\end{enumerate}
+
+Splitting criteria include but are not limited to: Gini score, information gain, entropy. Stopping conditions include but are not limited to: all subsets are homogeneous, number of observations is less then specified threshold, tree reaches a specified depth threshold\cite[p.~11]{info}.
+
+The prediction phase of a Decision Tree works as follows\cite[p.~122]{fundamentals}:
+
+\begin{enumerate}
+	\item Perform decision rule/test at root node.
+	\item Follow the edge based off the outcome of decision rule/test.
+	\item Perform decision rule/test at interior node.
+	\item Follow the edge based off the outcome of decision rule/test.
+	\item Repeat Step 3 and 4 until you reach a leaf node.
+	\item If multiple observations remain at a leaf node then perform some aggregation (mean, median for example) of observations at leaf for regression or a voting rule (majority vote for example) if the problem is classification. 
+\end{enumerate}
+
+Typically Classification Trees/Decision Trees are used as base models in ensemble models but for our demonstrative purposes we will create a single Classification Tree.
 
 
 \section{Methodology}
+
+\subsection{Expectations of the impact of the different remaining data quality issues for each of the two machine learning models}
+
+Weighted KNN is a variant where the distance of observations to the query observation is used in the voting rule. Closer observations have more weight during the voting process. It helps to deal with outliers and is later used when creating the final model. This will be useful for our KNN model since our data contains many natural outliers.
+
+Feature scaling is necessary for KNN due to the distance-based nature of KNN. This is performed as a preprocessing step in our final model.
+
+If there are categorical features as in the case of the Forest Cover Dataset then we convert this features to numerical features and use a categorical similarity metrics. Categorical similarity metrics include but are not limited to: Gower's similarity. \cite[p.~14-15]{similarity}. The Forest Cover Dataset contains many categorical features, so this choice will be important.
+
+Ties are less of a problem with weighted KNN then with standard KNN.
+
+Imbalanced datasets are even more sensitive to high $k$ values \cite[p.~193]{fundamentals}. The model trained later in this paper reflects this fact, as models with higher k values perform very poorly due to the presence imbalanced features.
 
 \section{Empirical procedure}
 
 \subsection{Pre-processing of dataset}
 
-The only feature with missing values is the Slope. This was imputed using the median for Slope, which was rounded to the nearest integer. The Facet and Aspect are highly correlated (almost 1.00 correlation) so we drop the Facet feature. Outliers and differences in numeric ranges are handled using robust scaling and SMOTE for all features. Numerical features are encoded as int64 and categorical features are encoded as boolean or object type depending on if they are boolean or multiclass features. Water\_Level feature is dropped since it has a cardinality of 1 and does not provide any discriminative power. Observation\_ID is dropped since it has a unique value for each observation and does not provide and discriminative power. Soil\_Type1 has invalid values. Soil\_Type1 is mapped from 'positive' to true and 'negative' to false. Cover\_Type is decreased by 1 so that it is 0-encoded, which is required by some models. The Water\_Level and 
+The same preprocessing was applied for both models. The only feature with missing values is the Slope. This was imputed using the median for Slope, which was rounded to the nearest integer. The Facet and Aspect are highly correlated (almost 1.00 correlation) so we drop the Facet feature. Outliers and differences in numeric ranges are handled using robust scaling and SMOTE for all features. Outliers have less of an effect on Classification Trees then KNN so this step can be left out for Classification Trees. Numerical features are encoded as int64 and categorical features are encoded as boolean or object type depending on if they are boolean or multiclass features. Water\_Level feature is dropped since it has a cardinality of 1 and does not provide any discriminative power. Observation\_ID is dropped since it has a unique value for each observation and does not provide and discriminative power. Soil\_Type1 has invalid values. Soil\_Type1 is mapped from 'positive' to true and 'negative' to false. Cover\_Type is decreased by 1 so that it is 0-encoded, which is required by some models. The Water\_Level and 
 
 \section{Research results}
+
+\subsection{KNN optimization}
+
+\subsection{Classification Tree optimization}
+
 
 \section{Section}
 
@@ -298,6 +347,9 @@ citation first, followed by the original foreign-language citation \cite{b6}.
 \bibitem{b6} Y. Yorozu, M. Hirano, K. Oka, and Y. Tagawa, ``Electron spectroscopy studies on magneto-optical media and plastic substrate interface,'' IEEE Transl. J. Magn. Japan, vol. 2, pp. 740--741, August 1987 [Digests 9th Annual Conf. Magnetics Japan, p. 301, 1982].
 \bibitem{b7} M. Young, The Technical Writer's Handbook. Mill Valley, CA: University Science, 1989.
 \bibitem{fundamentals} J. D. Kelleher, B. Mac Namee, and A. D’Arcy, \textit{Fundamentals of Machine Learning for Predictive Data Analytics: Algorithms, Worked Examples, and Case Studies}, 2nd ed. Cambridge, MA: The MIT Press, 2020. [c 2020 Massachusetts Institute of Technology. Library of Congress Cataloging-in-Publication Data: LCCN 2020002998; ISBN 9780262044691; Subjects: Machine learning, Data mining, Prediction theory; Classification: LCC Q325.5 .K455 2020, DDC 519.2/870.]
+\bibitem{info} A. P. Engelbrecht, \textit{Machine Learning 441/741: Topic 2 -- Information-based Learning}. Stellenbosch University, Department of Industrial Engineering and Division of Computer Science, 2025. [Online]. Available: https://engel.pages.cs.sun.ac.za/
+\bibitem{similarity} A. P. Engelbrecht, \textit{Machine Learning 441/741: Topic 3 -- Similarity-based Learning}. Stellenbosch University, Department of Industrial Engineering and Division of Computer Science, 2025. [Online]. Available: https://engel.pages.cs.sun.ac.za/
+
 
 \end{thebibliography}
 \vspace{12pt}
