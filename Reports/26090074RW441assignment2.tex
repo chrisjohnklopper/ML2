@@ -1,0 +1,359 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{caption}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+\title{A comparative study of KNN and Decision Tree Classifiers on the Forest Cover Dataset\\
+{\footnotesize}
+
+}
+
+\author{
+	\IEEEauthorblockN{C. J. Klopper}
+	\IEEEauthorblockA{
+		\textit{Machine Learning 441/741} \\
+		\textit{Stellenbosch University} \\
+		Student Number: 26090074 \\
+		South Africa \\
+		Repository available: https://github.com/chrisjohnklopper/ML2 \\
+		26090074@sun.ac.za or chrisjohnklopper@gmail.com
+	}
+}
+
+
+\maketitle
+
+\begin{abstract}
+This study compares the performance of a Classifier Tree and a KNN model on the same dataset (Forest Cover dataset) which contains various data quality issues to see the effect of these data quality issues on the choice of model. Data preprocessing was performed to address the data quality problems present in the data. Hyperparamater selection optimization was performed sequentially in order to maximise performance of the model. It was found that the KNN optimal hyperparameters was at k equal to 4 with weighted voting scheme. The decision tree optimal hyperparameters was at tree depth of 32 (among other parameter choices mentioned later). Both models perfomed well, but worse on minority target feature classes. Statistical tests such as a cross validation $t$-test and Wilcoxon Signed rank test were performed to assess if the performance of the models was different and it was found that the Classifier Tree performs better with the chosen parameters and data pipeline.
+\end{abstract}
+
+\begin{IEEEkeywords}
+KNN, classification trees, decision trees, forest cover dataset
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+In this report we wish to compare the performance of k-nearest neighbours (KNN) and Classification Trees on the Forest Cover Dataset. The goals of this paper are as follows:
+\begin{itemize}
+	\item Explain how each algorithm works.
+	\item Pre-process the data and produce models which can effectively classify each observation into one of 7 cover types.
+	\item Test if the two models' performances are different by using paired 10x2 cross-validation $t$-test, Wilcoxon Signed-Rank Test.
+\end{itemize}
+
+Preprocessing steps are performed on the dataset to ensure that it is ready to be used to train by both KNN and Classification trees. The performance of these models is then compared using statistical methods.
+
+It is observed that under the conditions set in this paper, with the argued parameter choices, that the Classification tree outperforms the KNN model.
+
+
+\section{Background}
+
+\subsection{Information on Forest Cover Dataset}
+
+The Forest Cover Dataset contains cartographic features from a 30x30 metre section of forest. It includes information on the type of tree, shadow coverage, distance to nearby landmarks among other features. The data set contains issues which need to be handled during preprocessing before model training can commence. This includes missing values, outliers, correlated features, numerical ranges of different magnitude and skewed class distributions.
+
+\subsection{Discussion of KNN}
+
+KNN is a supervised, distance-based, non-parametric machine learning algorithm which regresses/classifies based off neighbouring observations in feature space. The training phase consists of storing all instances in memory\cite[p.~187]{fundamentals}, meaning there essentially is no training phase unless there is preprocessing involved. This results in fast training and slow inference. The prediction phase works as follows: 
+
+\begin{enumerate}
+	\item The distance in feature space between the query observation and the other observations are calculated based off some chosen distance metric.
+	\item The nearest $k$ observations are collected.
+	\item Perform some aggregation (mean, median for example) of neighbours for regression or a voting rule (majority vote \cite[p.~192]{fundamentals} for example) if the problem is classification.
+\end{enumerate}
+
+Distance measures include but are not limited to: Euclidean distance, Manhattan distance, Minkowski distance \cite[p.~11]{similarity}.
+
+Ties are either dealt with by using and odd number for k or simply selecting a random feature out of the tied features\cite[p.~7]{similarity}.
+
+The idea of KNN relies on the principle of locality, the assumption that observations near to each other will share similar target feature values. With an increasing number of features this assumption may not hold due to the curse of dimensionality.
+ 
+In general, if the $k$ value is too high the KNN model will under-fit and if the $k$ value is too low the KNN model will over-fit \cite[p.~193]{fundamentals}.
+
+\subsection{Discussion of Classification Tree}
+
+A Classification Tree is a supervised, non-parametric machine learning algorithm which classifies by performing a series of tests on the query observation using features from the dataset (think like a game of Guess Who, but only asking questions using features from the data set \cite[p.~121]{fundamentals}.
+
+The structure of Classification Tree can be visualised as a tree graph with a root node, internal nodes and terminal nodes. Each non-leaf node is a decision rule/test. Edges represent outcomes of the decision rule/test. This makes Classification Trees very useful in applications where it is important to explain why a certain decision was made (this could be a legal requirement) since the tree structure/direct decision rules make the model very interpretable.
+
+Classification Tree can split based off missing values which make them useful in discovering if missing data is correlated to other features. This is not applicable for our dataset since missing data is negligible and is imputed.
+
+The training phase of a Classification Tree uses a divide-and-conquer strategy and works as follows:
+
+\begin{enumerate}
+	\item For each available feature, evaluate all possible splitting criteria.
+	\item Select feature and threshold/outcomes which maximises a chosen splitting criterion.
+	\item Split the dataset into subsets based off the chosen feature split.
+	\item For each subset repeat Step 2 and 3 recursively.
+	\item Repeat recursive splitting until a specified stopping condition is specified.
+\end{enumerate}
+
+Splitting criteria include but are not limited to: Gini score, information gain, entropy. Stopping conditions include but are not limited to: all subsets are homogeneous, number of observations is less then specified threshold, tree reaches a specified depth threshold\cite[p.~11]{info}.
+
+The prediction phase of a Decision Tree works as follows\cite[p.~122]{fundamentals}:
+
+\begin{enumerate}
+	\item Perform decision rule/test at root node.
+	\item Follow the edge based off the outcome of decision rule/test.
+	\item Perform decision rule/test at interior node.
+	\item Follow the edge based off the outcome of decision rule/test.
+	\item Repeat Step 3 and 4 until you reach a leaf node.
+	\item If multiple observations remain at a leaf node then perform some aggregation (mean, median for example) of observations at leaf for regression or a voting rule (majority vote for example) if the problem is classification. 
+\end{enumerate}
+
+Typically Classification Trees/Decision Trees are used as base models in ensemble models but for our demonstrative purposes we will create a single Classification Tree.
+
+\subsection{Wilcoxon Signed-rank Test}
+
+The Wilcoxon signed-rank test is a non-parametric rank test that can be used to compare the locations of two populations using two matched samples or to determine the location of a population based on a sample of data\cite{wilcoxon}. In this study, we use it to compare the F1-macro score sample populations from the two investigated models. When it is not possible to assume that the differences between paired individuals would follow a normal distribution, the Wilcoxon test is a viable substitute for the $t$-test. Rather, it attempts to determine whether this centre value deviates considerably from zero, under the weaker hypothesis that the distribution of this difference is symmetric around a central value\cite{wilcoxon}.
+
+
+\section{Methodology}
+
+\subsection{Expectations of the impact of the different remaining data quality issues for each of the two machine learning models}
+
+Weighted KNN is a variant where the distance of observations to the query observation is used in the voting rule. Closer observations have more weight during the voting process. It helps to deal with outliers and is later used when creating the final model. This will be useful for our KNN model since our data contains many natural outliers.
+
+Feature scaling is necessary for KNN due to the distance-based nature of KNN. This is performed as a preprocessing step in our final model.
+
+If there are categorical features as in the case of the Forest Cover Dataset then we convert this features to numerical features and use a categorical similarity metrics. Categorical similarity metrics include but are not limited to: Gower's similarity. \cite[p.~14-15]{similarity}. The Forest Cover Dataset contains many categorical features, so this choice will be important.
+
+Ties are less of a problem with weighted KNN then with standard KNN.
+
+Imbalanced datasets are even more sensitive to high $k$ values \cite[p.~193]{fundamentals}. The model trained later in this paper reflects this fact, as models with higher k values perform very poorly due to the presence imbalanced features.
+
+\section{Empirical procedure}
+
+\subsection{Pre-processing of dataset}
+
+ The same preprocessing was applied for both models. Obeservation\_ID and Water\_Level were swapped. The only feature with missing values is the Slope. This was imputed using the median for Slope, which was rounded to the nearest integer. The Facet and Aspect are highly correlated (almost $1.00$ correlation) so we drop the Facet feature. Outliers and differences in numeric ranges are handled using robust scaling. Outliers have less of an effect on Classification Trees then KNN so this step can be left out for Classification Trees. 
+ 
+ Numerical features are encoded as \texttt{int64} and categorical features are encoded as \texttt{boolean} or \texttt{object} type depending on if they are boolean or multi-class features. Water\_Level feature is dropped since it has a cardinality of 1 and does not provide any discriminative power. Observation\_ID is dropped since it has a unique value for each observation and does not provide and discriminative power. Soil\_Type1 has invalid values. 
+ 
+ Soil\_Type1 is mapped from 'positive' to true and 'negative' to false. Cover\_Type is decreased by 1 so that it is 0-encoded, which is required by some models. Slope is converted to an \texttt{int64} because the distribution appears to be continuous through visualisation. All the features with cardinality of two ($1.00$/$0.00$) were converted to a \texttt{boolean} type.
+ 
+ The Horizontal\_Distance\_To\_Hydrology feature is log transformed due to unnatural high values. The Inclination feature is dropped due to high noise.
+ 
+ 
+
+\section{Research results}
+
+Sequential hyperparameter tuning was used since a full combinatorial search over hyperparameter space was infeasible. A 80 - 20 split was used for training and testing data. Cross validation with k = 5 was used. Due to the larger size of the data, 5 is a good value to start with. A larger amount would be better but with computational restrictions made 5 the most reasonable. For KNN a subset of data was used (25\%) due to computational restrictions.
+
+Both models were tuned using the \texttt{GridSearchCV} package also from \texttt{scikit-learn}. This utilizes cross validation to get an average of performance with certain parameters which results in more accurate performance metrics. \texttt{K\_FOLDS} = 5 was selected as the number of folds in the cross validation. 
+
+A random state of 420 was selected. The data was shuffled during cross validation. A \texttt{RobustScaler} form the \texttt{scikit-learn} package was used to manage different magnitudes, skewness and reduce effect of outliers. The \texttt{RobustScaler} centres by median and scales by interquartile range. $k$ represents the number of neighbours in KNN.
+\subsection{KNN optimization}
+A weighted KNN model was used. A grid search with cross validation of 5 folds over the values $k \in \{1, 2, 3, 4, 5, 16, 32\}$ resulted in the following results. Smaller values of $k$ were chosen due to presence of outliers. 
+\begin{figure}[H]
+	\centering
+	\begin{minipage}{0.45\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../Generated-Figures/KNN-F1-Neighbours-40Data.png}
+		\caption{Effect of number of neighbours on base model KNN (40\% sample)}
+		\label{fig:neighbours}
+	\end{minipage}
+\end{figure}
+
+The larger values of $k$ confirms our assumption that lower values of $k$ will be favoured due to the nature of the data set. The best performance was with $k=4$.
+
+\begin{figure}[H]
+	\centering
+	\begin{minipage}{0.45\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../Generated-Figures/KNN-F1-Neighbours-40Data-SMOTE.png}
+		\caption{Effect of SMOTE on KNN (40\% sample)}
+		\label{fig:smote}
+	\end{minipage}
+\end{figure}
+
+SMOTE was performed with \texttt{k\_neighbours=5}. This did not increase the performance of KNN model. This is probably due to pre processing steps already taking care of outliers, noise and skewed distributions.
+
+\begin{figure}[H]
+	\centering
+	\begin{minipage}{0.45\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../Generated-Figures/KNN-F1-Neighbours-No-Weighting-50.png}
+		\caption{Effect of no weighting on KNN (50\% sample)}
+		\label{fig:smote}
+	\end{minipage}
+\end{figure}
+
+As we can see if we do not use weighted distance the KNN model performance is best when $k=1$. This is due to the presence of natural outliers. 
+
+\subsection{Classification Tree optimization}
+
+The \texttt{DecisionTreeClassifier} from \texttt{scikit-learn} package was used as the Classification Tree model. The first hyperparameter to select was the tree depth.
+
+\begin{figure}[H]
+	\centering
+	\begin{minipage}{0.45\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../Generated-Figures/DT-F1-MaxDepth.pdf}
+		\caption{Effect of max depth parameter on Classifier Tree model}
+		\label{fig:maxdepth}
+	\end{minipage}
+\end{figure}
+
+The smaller tree depths do not capture the complexity of data set but at around depth of 32 the performance stabilizes. This is probably due to the fact that further splits are not possible due to no more data. \texttt{max\_depth} of 32 is selected.
+
+\begin{figure}[H]
+	\centering
+	\begin{minipage}{0.45\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../Generated-Figures/DT-F1-MinSamplesSplit.pdf}
+		\caption{Effect of min samples parameter on Classifier Tree model}
+		\label{fig:samplesplit}
+	\end{minipage}
+\end{figure}
+
+Increasing the minimum samples for a split does results in worse performance. Keep as small as possible. \texttt{min\_samples} = 2.
+
+\begin{figure}[H]
+	\centering
+	\begin{minipage}{0.45\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../Generated-Figures/DT-F1-MinSampleLeaf.pdf}
+		\caption{Effect of min samples in leaf parameter on Classifier Tree model}
+		\label{fig:sampleleaf}
+	\end{minipage}
+\end{figure}
+
+Increasing the minimum samples in leaf results in worse performance. Keep as small as possible. \texttt{min\_samples} = 1. A final grid search was performed by also experimenting with different numbers of maximum features considered per split (all features, half of features, square root of features), class weights (equal or balanced) and minimal cost-complexity pruning (0.00 or 0.01, to test if there is an effect). No class weighting, no maximum features to be considered and no minimal cost-complexity pruning was optimal for our current model.
+
+\subsection{Metrics of final models}
+
+\begin{table}[htbp]
+	\centering
+	\begin{tabular}{lllll}
+		\toprule
+		\textbf{Class} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-score} & \textbf{Support} \\
+		\midrule
+		0 & 0.94 & 0.93 & 0.93 & 42487 \\
+		1 & 0.94 & 0.95 & 0.94 & 56659 \\
+		2 & 0.92 & 0.92 & 0.92 & 7123 \\
+		3 & 0.86 & 0.82 & 0.84 & 570 \\
+		4 & 0.82 & 0.79 & 0.80 & 1860 \\
+		5 & 0.86 & 0.85 & 0.86 & 3480 \\
+		6 & 0.95 & 0.94 & 0.94 & 4024 \\
+		\midrule
+		Accuracy & 0.93 & & & 116203 \\
+		Macro avg & 0.90 & 0.89 & 0.89 & 116203 \\
+		Weighted avg & 0.93 & 0.93 & 0.93 & 116203 \\
+		\bottomrule
+	\end{tabular}
+	\caption{Classifier tree metrics.}
+	\label{tab:tree-result}
+\end{table}
+
+\begin{table}[htbp]
+	\centering
+	\begin{tabular}{lllll}
+		\toprule
+		\textbf{Class} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-score} & \textbf{Support} \\
+		\midrule
+		0 & 0.94 & 0.93 & 0.93 & 42487 \\
+		1 & 0.94 & 0.95 & 0.94 & 56659 \\
+		2 & 0.91 & 0.92 & 0.91 & 7123 \\
+		3 & 0.88 & 0.83 & 0.85 & 570 \\
+		4 & 0.83 & 0.79 & 0.81 & 1860 \\
+		5 & 0.83 & 0.83 & 0.83 & 3480 \\
+		6 & 0.94 & 0.94 & 0.94 & 4024 \\
+		\midrule
+		Accuracy & 0.93 & & & 116203 \\
+		Macro avg & 0.90 & 0.88 & 0.89 & 116203 \\
+		Weighted avg & 0.93 & 0.93 & 0.93 & 116203 \\
+		\bottomrule
+	\end{tabular}
+	\caption{KNN metrics.}
+	\label{tab:knn-result}
+\end{table}
+
+
+
+Performance on majority class instances is better, which is to be expected with an imbalanced data set.
+
+
+
+
+\subsection{Cross validation t-test}
+
+We use the \texttt{scipy.stats.ttest\_rel} instaed of \texttt{scipy.stats.ttest\_ind} method since both models train off the same fold sample.
+
+\begin{align*}
+	H_{0}:& \ \mu_{F1,\text{KNN}} = \mu_{F1,\text{CT}} \\[6pt]
+	H_{1}:& \ \mu_{F1,\text{KNN}} \neq \mu_{F1,\text{CT}}
+\end{align*}
+
+where 
+\begin{itemize}
+	\item $H_{0}$ : null hypothesis,
+	\item $H_{1}$ : alternative hypothesis,
+	\item $\mu_{F1,\text{KNN}}$ : mean F1 macro score of the KNN classifier,
+	\item $\mu_{F1,\text{DT}}$ : mean F1 macro score of the Classifier Tree,
+\end{itemize}
+
+A 50\% subset of the training data is used. Cross validation with 10 folds (increased folds to compensate for smaller dataset) is used to and F1 macro scores are recorded for each model. We obtain the following summary statistics from the results of the folds (rounded to 4 decimals).
+
+\begin{table}[htbp]
+	\centering
+	\caption{Summary statistics of F1-macro scores for KNN and Classifier Tree.}
+	\vspace{1mm}
+	\begin{tabular}{lll}
+		\toprule
+		\textbf{Metric} & \textbf{KNN} & \textbf{Classifier Tree} \\
+		\midrule
+		Minimum    & 0.8444 & 0.8527 \\
+		Maximum    & 0.8639 & 0.8710 \\
+		Mean       & 0.8498 & 0.8585 \\
+		Std Dev    & 0.0056 & 0.0051 \\
+		\bottomrule
+	\end{tabular}
+	\label{tab:f1_summary}
+\end{table}
+
+
+The t-statistic obtained is -4.5109 and the p-value obtained is 0.0015 (both rounded to 4 decimals) which indicates a statistical difference between the two models performance (evidence for $H_1$). With the current preceding preprocessing steps and model hyperparameters we conclude that the Classifier Tree performs better with the Forest Cover Dataset (higher mean).
+
+\subsection{Wilcoxon Signed-Rank Test}
+
+The \texttt{stats.wilcoxon} python package was used to compute the test statistics. A similar result holds using the Wilcoxon Signed-Rank Test. We obtain a test statistic of 2.0 and a p-value of 0.0058 (rounded to 4 decimals). This is further evidence to show that the models do not perform the same.
+
+
+\section{Conclusion}
+
+Several interesting insights were observed. It was found that Classification trees outperformed the KNN models with the testing methods used in this paper. The fully trained KNN model did not have significant performance difference but through statistical testing through cross validation is was found that the Classification tree performs better. Training using cross validation with 10 folds revealed that the Classification tree outperformed the KNN with a F1-macro score average of 0.8498 compared to the F1-macro score average of 0.8585 for KNN. This was verified through $t$-stat test and a Wilcoxon signed rank test to be a statistically significant difference. The standard deviations of F1-macro score was similar at 0.0056 for KNN and 0.0051 for Classifier trees. The highest achieved F1-macro score was greater for the Classification tree at 0.8527 and only 0.8639 for KNN. The minimum F1-macro score was 0.8444 for KNN and 0.8527 for Classifier tree. These results alone already indicate that the Classifier tree might be better performing.
+
+Due to the computational restrictions of this study, the KNN parameter optimization was often restricted to samples, which might not reflect the true nature of the dataset. This is an advantage of Classification trees.
+
+The Classification tree superior performance is likely due to it's ability to more effectively handle the data quality issues of the data set (handling outliers for example). Classification trees also have the added bonus of easier training and inference with increased interpret-ability. They more naturally incorporate data quality issues and can sometimes use the issues to incorporate extra discriminative power.
+
+Preprocessing steps and parameter optimization were shown to be necessary for best performance of both these models. Even still, both models struggled more with minority classes.
+
+In the future this study could be improved by experimenting with tree ensemble methods such as XGBoost and more sophisticated preprocessing techniques for imbalanced data handling. This might result in the both the KNN and Classification tree performing better.
+
+
+
+\begin{thebibliography}{00}
+\bibitem{fundamentals} J. D. Kelleher, B. Mac Namee, and A. D’Arcy, \textit{Fundamentals of Machine Learning for Predictive Data Analytics: Algorithms, Worked Examples, and Case Studies}, 2nd ed. Cambridge, MA: The MIT Press, 2020. [c 2020 Massachusetts Institute of Technology. Library of Congress Cataloging-in-Publication Data: LCCN 2020002998; ISBN 9780262044691; Subjects: Machine learning, Data mining, Prediction theory; Classification: LCC Q325.5 .K455 2020, DDC 519.2/870.]
+\bibitem{info} A. P. Engelbrecht, \textit{Machine Learning 441/741: Topic 2 -- Information-based Learning}. Stellenbosch University, Department of Industrial Engineering and Division of Computer Science, 2025. [Online]. Available: https://engel.pages.cs.sun.ac.za/
+\bibitem{similarity} A. P. Engelbrecht, \textit{Machine Learning 441/741: Topic 3 -- Similarity-based Learning}. Stellenbosch University, Department of Industrial Engineering and Division of Computer Science, 2025. [Online]. Available: https://engel.pages.cs.sun.ac.za/
+\bibitem{wilcoxon}
+Wikipedia contributors, \textit{Wilcoxon signed-rank test}. Wikipedia, The Free Encyclopedia, 2025. [Online]. Available: https://en.wikipedia.org/wiki/Wilcoxon\_signed-rank\_test
+
+
+
+\end{thebibliography}
+
+
+\end{document}
